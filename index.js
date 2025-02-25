@@ -10,6 +10,7 @@ app.use(bodyparser.json());
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
 
+const JWT_SECRET = process.env.JWT_SECRET;
 // Home page route
 
 app.get('/',(req,res)=>{
@@ -36,7 +37,7 @@ app.post('/register',(req,res)=>{
       
     })
     
-      connection.query(`insert into users (username,email,password) values( ?,?,?)`,[username,email,password],(err,result)=>{
+     connection.query(`insert into users (username,email,password) values( ?,?,?)`,[username,email,password],(err,result)=>{
         if(err){
           return res.status(500).json({ error: "Database error during user insertion", details: err });
           //console.log('please fix this error err',err)
@@ -48,7 +49,6 @@ app.post('/register',(req,res)=>{
     
   }
     catch(error){
-
       res.status(500).json({ error: "Unexpected server error", details: error.message });
     }
 
@@ -67,7 +67,10 @@ app.post('/login',(req,res)=>{
    connection.query(`select * from users where email = ?`,[cleanedEmail],(err,result)=>{
     
     if(err){
-    return res.status(401),json({message: "email or password is incorrect"})
+          return res.status(401),json({message: "Database error please check your query"})
+    }
+    if(result.length > 0){
+       //console.log("found the email")
     }
    })
    
