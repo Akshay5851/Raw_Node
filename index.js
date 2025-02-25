@@ -16,12 +16,12 @@ app.get('/',(req,res)=>{
     res.send('first page working finess')
 })
 
-// Register a new user
+// Route to Register a new user
 
 app.post('/register',(req,res)=>{
   try{
-    const {username,email}= req.body;
-    const cleanedEmail = email.trim().toLowerCase();
+    const {username,email,password}= req.body;
+    //const cleanedEmail = email.trim().toLowerCase();
     
     //console.log(cleanedEmail);
     connection.query('select * from users where email = ?',[email],(err,result)=>{
@@ -36,17 +36,16 @@ app.post('/register',(req,res)=>{
       
     })
     
-      connection.query(`insert into users (username,email) values( ?,?)`,[username,email],(err,result)=>{
+      connection.query(`insert into users (username,email,password) values( ?,?,?)`,[username,email,password],(err,result)=>{
         if(err){
           return res.status(500).json({ error: "Database error during user insertion", details: err });
           //console.log('please fix this error err',err)
         }else{
-          console.log(result)
+         // console.log(result)
           return res.status(201).json({ message: "User successfully registered", userId: result.insertId });
         }
       })
     
-
   }
     catch(error){
 
@@ -55,6 +54,28 @@ app.post('/register',(req,res)=>{
 
 })
 
+// Route to log in a user
+
+app.post('/login',(req,res)=>{
+
+   const {email,password}=req.body;
+   if(!email||!password){
+    return res.status(400).json({message: "Email and password are required"});
+   }
+   
+   const cleanedEmail= email.trim().toLowerCase()
+   connection.query(`select * from users where email = ?`,[cleanedEmail],(err,result)=>{
+    
+    if(err){
+    return res.status(401),json({message: "email or password is incorrect"})
+    }
+   })
+   
+
+})
+
+// Route to fetch all users
+
 app.get('/users',(req,res)=>{
     const con=connection.query('select * from users',(err,result)=>{
         if(err){
@@ -62,7 +83,7 @@ app.get('/users',(req,res)=>{
           return;
         }
         console.log('query is succesful')
-         res.json(result);
+         return res.json(result);
         //console.log(result)
       })
 })
