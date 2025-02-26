@@ -6,6 +6,7 @@ const bodyparser = require('body-parser');
 const becrypt = require('bcryptjs');
 const app = express();
 const port= process.env.PORT;
+const authmiddleware= require('./middleware/auth_middleware');
 app.use(bodyparser.json());
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
@@ -69,17 +70,19 @@ app.post('/login',(req,res)=>{
     if(err){
           return res.status(401),json({message: "Database error please check your query"})
     }
-    if(result.length > 0){
-       //console.log("found the email")
+    if(result.length > 0 || result.email == email){
+       //console.log("found the email");
+       const token= jwt.sign({email: result.email},JWT_SECRET,{expiresIn: '1h'});
+       res.json({token});
     }
    })
    
-
+    
 })
 
-// Route to fetch all users
+ // Protected Route to fetch all users
 
-app.get('/users',(req,res)=>{
+app.get('/users',authmiddleware,(req,res)=>{
     const con=connection.query('select * from users',(err,result)=>{
         if(err){
           console.log('unable to find data record from table having error'+err);
