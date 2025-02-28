@@ -3,14 +3,13 @@ const connection= require('./connection');
 //const con = require('./users/view')
 const jwt = require('jsonwebtoken');
 const bodyparser = require('body-parser');
-const becrypt = require('bcryptjs');
+//const becrypt = require('bcryptjs');
 const app = express();
-const port= process.env.PORT;
 const authmiddleware= require('./middleware/auth_middleware');
 app.use(bodyparser.json());
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
-
+const port= process.env.PORT;
 const JWT_SECRET = process.env.JWT_SECRET;
 // Home page route
 
@@ -59,22 +58,22 @@ app.post('/register',(req,res)=>{
 
 app.post('/login',(req,res)=>{
 
-   const {email,password}=req.body;
-   if(!email||!password){
-    return res.status(400).json({message: "Email and password are required"});
-   }
+    const {email,password}=req.body;
+      if(!email||!password){
+        return res.status(400).json({message: "Email and password are required"});
+      }
    
-   const cleanedEmail= email.trim().toLowerCase()
-   connection.query(`select * from users where email = ?`,[cleanedEmail],(err,result)=>{
+    const cleanedEmail= email.trim().toLowerCase()
+     connection.query(`select * from users where email = ?`,[cleanedEmail],(err,result)=>{
     
-    if(err){
-          return res.status(401),json({message: "Database error please check your query"})
-    }
-    if(result.length > 0 || result.email == email){
-       //console.log("found the email");
-       const token= jwt.sign({email: result.email},JWT_SECRET,{expiresIn: '1h'});
-       res.json({token});
-    }
+      if(err){
+            return res.status(401),json({message: "Database error please check your query"})
+      }
+        if(result.length > 0 || result.email == email){
+          //console.log("found the email");
+          const token= jwt.sign({email: result.email},JWT_SECRET,{expiresIn: '1h'});
+          res.json({token});
+        }
    })
    
     
