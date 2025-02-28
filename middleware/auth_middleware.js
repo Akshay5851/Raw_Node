@@ -3,6 +3,8 @@ const express = require('express');
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET;
+// In-memory token blacklist
+const tokenBlacklist = new Set();
 
 const authmiddleware = (req,res,next)=>{
    //console.log(req.headers);
@@ -14,6 +16,11 @@ const authmiddleware = (req,res,next)=>{
 
    // Extract token by removing "Bearer " (case insensitive)
    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+   
+   // Check if the token is blacklisted
+    if (tokenBlacklist.has(token)) {
+        return res.status(401).json({ message: 'Token is invalid (logged out)' });
+    }
 
    try {
        const decoded = jwt.verify(token, JWT_SECRET);

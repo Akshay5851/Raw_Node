@@ -11,8 +11,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 const port= process.env.PORT;
 const JWT_SECRET = process.env.JWT_SECRET;
-// Home page route
 
+const tokenBlacklist = new Set();
 app.get('/',(req,res)=>{
     res.send('first page working finess')
 })
@@ -78,6 +78,27 @@ app.post('/login',(req,res)=>{
    
     
 })
+
+
+// Logout endpoint
+app.post('/logout', authmiddleware, (req, res) => {
+  const authHeader = req.header('authorization');
+
+  if (!authHeader) {
+    return res.status(400).json({ message: 'No token provided' });
+  }
+
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+
+  if (!token) {
+    return res.status(400).json({ message: 'No token provided' });
+  }
+
+  // Add the token to the blacklist
+  tokenBlacklist.add(token);
+
+  res.json({ message: 'Logged out successfully' });
+});
 
  // Protected Route to fetch all users
 
