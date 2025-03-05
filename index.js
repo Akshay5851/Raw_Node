@@ -3,16 +3,17 @@ const connection= require('./connection');
 //const con = require('./users/view')
 const jwt = require('jsonwebtoken');
 const bodyparser = require('body-parser');
-//const becrypt = require('bcryptjs');
+const becrypt = require('bcryptjs');
 const app = express();
 const authmiddleware= require('./middleware/auth_middleware');
+const tokenblacklist= require('./middleware/tokenblacklist');
 app.use(bodyparser.json());
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
 const port= process.env.PORT;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const tokenBlacklist = new Set();
+
 app.get('/',(req,res)=>{
     res.send('first page working finess')
 })
@@ -24,28 +25,39 @@ app.post('/register',(req,res)=>{
     const {username,email,password}= req.body;
     //const cleanedEmail = email.trim().toLowerCase();
     
-    //console.log(cleanedEmail);
-    connection.query('select * from users where email = ?',[email],(err,result)=>{
+        //console.log(cleanedEmail);
+        connection.query('select * from users where email = ?',[email],(err,result)=>{
 
-      if (err) {
-      return res.status(500).json({ error: "Database error during email check", details: err });
-      }
-      //console.log(result);
-      if (result.length > 0) {
-      return res.status(400).json({ message: "Email already registered" });
-      }
-      
-    })
-    
-     connection.query(`insert into users (username,email,password) values( ?,?,?)`,[username,email,password],(err,result)=>{
-        if(err){
-          return res.status(500).json({ error: "Database error during user insertion", details: err });
-          //console.log('please fix this error err',err)
-        }else{
-         // console.log(result)
-          return res.status(201).json({ message: "User successfully registered", userId: result.insertId });
+          if (err) {
+          return res.status(500).json({ error: "Database error during email check", details: err });
+          }
+          //console.log(result);
+          if (result.length > 0) {
+          return res.status(400).json({ message: "Email already registered" });
+          }
+          
+        })
+      try{  
+        async function registeruser(username,email,password){
+            const hashpassword = await becrypt.hash(password, 10);
+            
+            connection.query(`insert into users (username,email,password) values( ?,?,?)`,[username,email,hashpassword],(err,result)=>{
+              if(err){
+                return res.status(500).json({ error: "Database error during user insertion", details: err });
+                //console.log('please fix this error err',err)
+              }
+              // console.log(result)
+                return res.status(201).json({ message: "User successfully registered", userId: result.insertId });
+            
+          })
+          
+
         }
-      })
+        registeruser(username,email,password);
+        }catch(hasherr){
+             return res.status(501).json({error: "Error while hashing password"})
+        }
+
     
   }
     catch(error){
@@ -56,24 +68,45 @@ app.post('/register',(req,res)=>{
 
 // Route to log in a user
 
-app.post('/login',(req,res)=>{
+app.post('/login', (req,res)=>{
 
     const {email,password}=req.body;
       if(!email||!password){
         return res.status(400).json({message: "Email and password are required"});
       }
    
-    const cleanedEmail= email.trim().toLowerCase()
-     connection.query(`select * from users where email = ?`,[cleanedEmail],(err,result)=>{
+     const cleanedEmail= email.trim().toLowerCase();
+     //console.log(cleanedEmail);
+     connection.query(`select * from users where email = ?`,[cleanedEmail],async (err,result)=>{
     
       if(err){
-            return res.status(401),json({message: "Database error please check your query"})
+            return res.status(401).json({message: "Database error please check your query"})
       }
-        if(result.length > 0 || result.email == email){
-          //console.log("found the email");
-          const token= jwt.sign({email: result.email},JWT_SECRET,{expiresIn: '1h'});
-          res.json({token});
-        }
+        //return res.status(400).json({message: "no user found email is wrong"})
+        
+      if(result.length > 0){
+        //console.log(result.password);
+      
+        const user= result[0];
+        //console.log(user.password);
+    // Compare the provided password with the stored hash
+            try {
+              const isPasswordValid = await becrypt.compare(password, user.password);
+      
+              if (!isPasswordValid) {
+                return res.status(401).json({ message: "Invalid email or password" });
+              }
+              const token= jwt.sign({email: result.email},JWT_SECRET,{expiresIn: '1h'});
+              //res.json({token});
+              // If the password is valid, return a success response
+              return res.status(200).json({ message: "Login successful", user: { id: user.id, username: user.username, email: user.email },token: token });
+            } catch (compareError) {
+              return res.status(500).json({ error: "Error comparing passwords", details: compareError.message });
+            }
+          }else{
+            return res.status(402).json({message: "No user found or invalid email"});
+          }
+        
    })
    
     
@@ -89,15 +122,16 @@ app.post('/logout', authmiddleware, (req, res) => {
   }
 
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-
+  //console.log(token);
   if (!token) {
     return res.status(400).json({ message: 'No token provided' });
   }
 
   // Add the token to the blacklist
-  tokenBlacklist.add(token);
-
-  res.json({ message: 'Logged out successfully' });
+  tokenblacklist.add(token);
+  //console.log(tokenBlacklist);
+  const blacklistArray = Array.from(tokenblacklist);
+  return res.json({ message: 'Logged out successfully' , token: blacklistArray});
 });
 
  // Protected Route to fetch all users
@@ -108,8 +142,8 @@ app.get('/users',authmiddleware,(req,res)=>{
           console.log('unable to find data record from table having error'+err);
           return;
         }
-        console.log('query is succesful')
-         return res.json(result);
+        //console.log('query is succesful')
+         return res.status(200).json(result);
         //console.log(result)
       })
 })
