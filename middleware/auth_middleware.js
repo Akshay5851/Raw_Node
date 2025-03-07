@@ -17,7 +17,7 @@ const authmiddleware = (req,res,next)=>{
    // Extract token by removing "Bearer " (case insensitive)
    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 //    console.log(token);
-   //console.log(tokenblacklist);
+   
    // Check if the token is blacklisted
     if (tokenblacklist.has(token)) {
         return res.status(401).json({ message: 'Token is invalid (logged out)' });

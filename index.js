@@ -1,6 +1,5 @@
 const express = require('express');
 const connection= require('./connection');
-//const con = require('./users/view')
 const jwt = require('jsonwebtoken');
 const bodyparser = require('body-parser');
 const becrypt = require('bcryptjs');
@@ -23,15 +22,12 @@ app.get('/',(req,res)=>{
 app.post('/register',(req,res)=>{
   try{
     const {username,email,password}= req.body;
-    //const cleanedEmail = email.trim().toLowerCase();
     
-        //console.log(cleanedEmail);
         connection.query('select * from users where email = ?',[email],(err,result)=>{
 
           if (err) {
           return res.status(500).json({ error: "Database error during email check", details: err });
           }
-          //console.log(result);
           if (result.length > 0) {
           return res.status(400).json({ message: "Email already registered" });
           }
@@ -44,9 +40,8 @@ app.post('/register',(req,res)=>{
             connection.query(`insert into users (username,email,password) values( ?,?,?)`,[username,email,hashpassword],(err,result)=>{
               if(err){
                 return res.status(500).json({ error: "Database error during user insertion", details: err });
-                //console.log('please fix this error err',err)
               }
-              // console.log(result)
+              
                 return res.status(201).json({ message: "User successfully registered", userId: result.insertId });
             
           })
@@ -76,28 +71,25 @@ app.post('/login', (req,res)=>{
       }
    
      const cleanedEmail= email.trim().toLowerCase();
-     //console.log(cleanedEmail);
      connection.query(`select * from users where email = ?`,[cleanedEmail],async (err,result)=>{
     
       if(err){
             return res.status(401).json({message: "Database error please check your query"})
       }
-        //return res.status(400).json({message: "no user found email is wrong"})
         
       if(result.length > 0){
-        //console.log(result.password);
       
         const user= result[0];
-        //console.log(user.password);
-    // Compare the provided password with the stored hash
+   
+           // Compare the provided password with the stored hash
             try {
               const isPasswordValid = await becrypt.compare(password, user.password);
       
               if (!isPasswordValid) {
-                return res.status(401).json({ message: "Invalid email or password" });
+                return res.status(401).json({ message: "Invalid password" });
               }
               const token= jwt.sign({email: result.email},JWT_SECRET,{expiresIn: '1h'});
-              //res.json({token});
+             
               // If the password is valid, return a success response
               return res.status(200).json({ message: "Login successful", user: { id: user.id, username: user.username, email: user.email },token: token });
             } catch (compareError) {
@@ -109,7 +101,6 @@ app.post('/login', (req,res)=>{
         
    })
    
-    
 })
 
 
@@ -122,14 +113,12 @@ app.post('/logout', authmiddleware, (req, res) => {
   }
 
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-  //console.log(token);
   if (!token) {
     return res.status(400).json({ message: 'No token provided' });
   }
 
   // Add the token to the blacklist
   tokenblacklist.add(token);
-  //console.log(tokenBlacklist);
   const blacklistArray = Array.from(tokenblacklist);
   return res.json({ message: 'Logged out successfully' , token: blacklistArray});
 });
@@ -142,9 +131,7 @@ app.get('/users',authmiddleware,(req,res)=>{
           console.log('unable to find data record from table having error'+err);
           return;
         }
-        //console.log('query is succesful')
          return res.status(200).json(result);
-        //console.log(result)
       })
 })
 
