@@ -54,10 +54,10 @@ app.post('/register',(req,res)=>{
         }
 
     
-  }
-    catch(error){
-      res.status(500).json({ error: "Unexpected server error", details: error.message });
-    }
+      }
+      catch(error){
+        res.status(500).json({ error: "Unexpected server error", details: error.message });
+      }
 
 })
 
@@ -81,7 +81,7 @@ app.post('/login', (req,res)=>{
       
         const user= result[0];
    
-           // Compare the provided password with the stored hash
+             // Compare the provided password with the stored hash
             try {
               const isPasswordValid = await becrypt.compare(password, user.password);
       
