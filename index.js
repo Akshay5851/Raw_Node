@@ -1,12 +1,12 @@
 const express = require('express');
 const connection= require('./connection');
 const jwt = require('jsonwebtoken');
-const bodyparser = require('body-parser');
+//const bodyparser = require('body-parser');
 const becrypt = require('bcryptjs');
 const app = express();
 const authmiddleware= require('./middleware/auth_middleware');
 const tokenblacklist= require('./middleware/tokenblacklist');
-app.use(bodyparser.json());
+//app.use(bodyparser.json());
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
 const port= process.env.PORT;
