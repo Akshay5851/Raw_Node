@@ -16,7 +16,7 @@ const authmiddleware = (req,res,next)=>{
 
    // Extract token by removing "Bearer " (case insensitive)
    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-//    console.log(token);
+    console.log(token);
    
    // Check if the token is blacklisted
     if (tokenblacklist.has(token)) {
@@ -24,9 +24,12 @@ const authmiddleware = (req,res,next)=>{
     }
 
    try {
+   
        const decoded = jwt.verify(token, JWT_SECRET);
+      // console.log(decoded);
        req.user = decoded;
        next();
+    
    } catch (err) {
        res.status(400).json({ message: 'Invalid token', error: err });
    }

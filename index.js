@@ -1,7 +1,7 @@
 const express = require('express');
 const connection= require('./connection');
 const jwt = require('jsonwebtoken');
-//const bodyparser = require('body-parser');
+const bodyparser = require('body-parser');
 const becrypt = require('bcryptjs');
 const app = express();
 const authmiddleware= require('./middleware/auth_middleware');
@@ -11,6 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 const port= process.env.PORT;
 const JWT_SECRET = process.env.JWT_SECRET;
+const adminOnly = require('./middleware/adminOnly');
 
 
 app.get('/',(req,res)=>{
@@ -33,6 +34,9 @@ app.post('/register',(req,res)=>{
           }
           
         })
+        if (!username || !password) {
+              return res.status(400).json({ error: 'Username and password are required' });
+            }
       try{  
         async function registeruser(username,email,password){
             const hashpassword = await becrypt.hash(password, 10);
@@ -80,15 +84,21 @@ app.post('/login', (req,res)=>{
       if(result.length > 0){
       
         const user= result[0];
-   
              // Compare the provided password with the stored hash
             try {
+
               const isPasswordValid = await becrypt.compare(password, user.password);
       
               if (!isPasswordValid) {
                 return res.status(401).json({ message: "Invalid password" });
               }
-              const token= jwt.sign({email: result.email},JWT_SECRET,{expiresIn: '1h'});
+              const payload = {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+              };
+              const token= jwt.sign(payload,JWT_SECRET,{expiresIn: '1h'});
              
               // If the password is valid, return a success response
               return res.status(200).json({ message: "Login successful", user: { id: user.id, username: user.username, email: user.email },token: token });
@@ -125,7 +135,7 @@ app.post('/logout', authmiddleware, (req, res) => {
 
  // Protected Route to fetch all users
 
-app.get('/users',authmiddleware,(req,res)=>{
+app.get('/admin/users',authmiddleware,adminOnly,(req,res)=>{
     const con=connection.query('select * from users',(err,result)=>{
         if(err){
           console.log('unable to find data record from table having error'+err);
